@@ -4,9 +4,9 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  const playlistId = req.query.playlistId as string;
+  const { playlistId } = req.query;
 
-  if (!playlistId) {
+  if (!playlistId || typeof playlistId !== "string") {
     return res.status(400).json({ error: "Missing playlistId" });
   }
 
@@ -16,7 +16,7 @@ export default async function handler(
     );
 
     if (!deezerRes.ok) {
-      return res.status(500).json({ error: "Failed to fetch playlist" });
+      throw new Error("Deezer API error");
     }
 
     const data = await deezerRes.json();
@@ -41,6 +41,6 @@ export default async function handler(
       tracks,
     });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Failed to load playlist" });
   }
 }
