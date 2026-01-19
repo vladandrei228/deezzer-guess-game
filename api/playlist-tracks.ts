@@ -4,63 +4,43 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-    // ✅ CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  const playlistId = req.query.playlistId as string;
 
-    // ✅ Handle preflight requests
-    if (req.method === "OPTIONS") {
-        return res.status(200).end();
-    }
-    
-    const playlistId = req.query.playlistId;
+  if (!playlistId) {
+    return res.status(400).json({ error: "Missing playlistId" });
+  }
 
-    if (!playlistId || typeof playlistId !== 'string') {
-        return res.status(400).json({ error: "Invalid or missing playlistId" });
-    }
-
-    try{
-        const response = await fetch(
+  try {
+    const deezerRes = await fetch(
       `https://api.deezer.com/playlist/${playlistId}`
     );
-    const data = await response.json();
 
-    if (!data.tracks || !data.tracks.data) {
-      return res.status(404).json({
-        error: "Playlist not found or has no tracks"
-      });
+    if (!deezerRes.ok) {
+      return res.status(500).json({ error: "Failed to fetch playlist" });
     }
 
-    // ✅ Clean & filter tracks
+    const data = await deezerRes.json();
+
     const tracks = data.tracks.data
-      .filter((track: any) => track.preview)
-      .map((track: any) => ({
-        id: track.id,
-        preview: track.preview,
-        cover: track.album.cover_medium,
+      .filter((t: any) => t.preview)
+      .map((t: any) => ({
+        id: t.id,
+        preview: t.preview,
+        cover: t.album.cover_medium,
         answer: {
-          title: track.title.toLowerCase(),
-          artist: track.artist.name.toLowerCase()
-        }
+          title: t.title,
+          artist: t.artist.name,
+        },
       }));
-
-    if (tracks.length === 0) {
-      return res.status(404).json({
-        error: "No playable tracks (no previews)"
-      });
-    }
 
     res.status(200).json({
       playlist: {
         id: data.id,
-        title: data.title
+        title: data.title,
       },
-      tracks
+      tracks,
     });
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch playlist"
-    });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
 }

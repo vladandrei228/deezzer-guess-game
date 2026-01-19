@@ -25,9 +25,7 @@ export function PlaylistInput({ onPlaylistLoaded }: Props) {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/playlist-tracks?playlistId=${id}`
-);
+      const res = await fetch(`/api/playlist-tracks?playlistId=${id}`);
 
 
       if (!res.ok) throw new Error();
